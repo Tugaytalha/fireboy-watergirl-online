@@ -1,6 +1,6 @@
 import type { LevelData } from '@fbwg/shared';
 
-// Level 3: Green Danger — Introduces green acid
+// Level 3: Green Danger — Introduces green acid pits; each side has a safe hazard + shared acid barrier
 const level03: LevelData = {
   id: 3,
   name: 'Green Danger',
@@ -11,49 +11,58 @@ const level03: LevelData = {
     for (let y = 0; y < 17; y++) {
       t[y] = [];
       for (let x = 0; x < 30; x++) {
-        if (y === 0 || y === 16 || x === 0 || x === 29) {
-          t[y][x] = 1;
-        } else {
-          t[y][x] = 0;
-        }
+        t[y][x] = (y === 0 || y === 16 || x === 0 || x === 29) ? 1 : 0;
       }
     }
-    // Ground floor
+
+    // ── Ground floor (full, gaps added below for pits) ──────────────
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Green acid pit in the middle — must jump over
-    for (let x = 12; x < 16; x++) t[13][x] = 4; // green acid
-    // Left lava section (Fireboy crosses here safely as Fireboy)
-    for (let x = 6; x < 9; x++) t[13][x] = 2;
-    // Right water section (Watergirl crosses here safely as Watergirl)
-    for (let x = 20; x < 23; x++) t[13][x] = 3;
-    // Stepping stones: left side (ground y=14 → step y=12 → platform y=10, each 2-tile jump)
-    for (let x = 2; x < 5; x++) t[12][x] = 1;
-    // Stepping stones: right side
-    for (let x = 24; x < 27; x++) t[12][x] = 1;
-    // Platforms
-    for (let x = 3; x < 12; x++) t[10][x] = 1;
-    // Bridge over the acid gap so players can cross from left to right platform
-    for (let x = 12; x < 16; x++) t[10][x] = 1;
-    for (let x = 16; x < 27; x++) t[10][x] = 1;
-    // Intermediate step: eases the right-side jump from platform (y=10) to upper area (y=7)
-    for (let x = 17; x < 20; x++) t[8][x] = 1;
-    // Upper exit area
-    for (let x = 22; x < 28; x++) t[5][x] = 1;
-    for (let x = 16; x < 23; x++) t[7][x] = 1;
+
+    // ── LAVA PIT (left, x=6-8): Fireboy can fall in safely, Watergirl must jump ──
+    for (let x = 6; x <= 8; x++) { t[14][x] = 0; t[15][x] = 2; }
+
+    // ── ACID PIT (centre, x=13-16): deadly for both — divides sides ──────
+    for (let x = 13; x <= 16; x++) { t[14][x] = 0; t[15][x] = 4; }
+
+    // ── WATER PIT (right, x=21-23): Watergirl can fall in safely, Fireboy must jump ──
+    for (let x = 21; x <= 23; x++) { t[14][x] = 0; t[15][x] = 3; }
+
+    // ── LEFT STAIRCASE (Fireboy's path to left exit) ──────────────────
+    // Step 1  y=12, x=2-4   (2-tile jump from ground y=14)
+    for (let x = 2; x <= 4; x++) t[12][x] = 1;
+    // Step 2  y=10, x=1-7   (2-tile jump from step 1)
+    for (let x = 1; x <= 7; x++) t[10][x] = 1;
+    // Step 3  y=7,  x=1-9   (3-tile jump from step 2, within 110 px max)
+    for (let x = 1; x <= 9; x++) t[7][x] = 1;
+    // Exit platform y=4, x=1-8
+    for (let x = 1; x <= 8; x++) t[4][x] = 1;
+
+    // ── RIGHT STAIRCASE (Watergirl's path to right exit) ──────────────
+    // Step 1  y=12, x=24-27
+    for (let x = 24; x <= 27; x++) t[12][x] = 1;
+    // Step 2  y=10, x=21-28
+    for (let x = 21; x <= 28; x++) t[10][x] = 1;
+    // Step 3  y=7,  x=19-28
+    for (let x = 19; x <= 28; x++) t[7][x] = 1;
+    // Exit platform y=4, x=20-28
+    for (let x = 20; x <= 28; x++) t[4][x] = 1;
+
     return t;
   })(),
   objects: [],
   diamonds: [
-    { type: 'red', x: 7, y: 12 },
-    { type: 'blue', x: 21, y: 12 },
-    { type: 'red', x: 5, y: 9 },
-    { type: 'blue', x: 18, y: 9 },
-    { type: 'red', x: 24, y: 9 },
-    { type: 'blue', x: 25, y: 9 },
+    // Left staircase diamonds (red for Fireboy)
+    { type: 'red', x: 3, y: 11 },
+    { type: 'red', x: 4, y: 9 },
+    { type: 'red', x: 6, y: 6 },
+    // Right staircase diamonds (blue for Watergirl)
+    { type: 'blue', x: 25, y: 11 },
+    { type: 'blue', x: 24, y: 9 },
+    { type: 'blue', x: 22, y: 6 },
   ],
   spawns: { fireboy: [2, 13], watergirl: [26, 13] },
-  exits: { fireboy: [26, 4], watergirl: [23, 4] },
-  par: { time: 45, diamonds: { red: 3, blue: 3 } },
+  exits: { fireboy: [4, 3], watergirl: [24, 3] },
+  par: { time: 50, diamonds: { red: 3, blue: 3 } },
 };
 
 export default level03;

@@ -20,13 +20,13 @@ const level02: LevelData = {
     }
     // Ground floor
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Lava pool (left path) — tiles 5-8 at y=13
-    for (let x = 5; x < 9; x++) t[13][x] = 2; // lava
-    // Water pool (right path) — tiles 15-18 at y=13
-    for (let x = 15; x < 19; x++) t[13][x] = 3; // water
+    // LAVA PIT (left path, x=5-8): gap in ground + hazard tile below
+    for (let x = 5; x < 9; x++) { t[14][x] = 0; t[15][x] = 2; }
+    // WATER PIT (right path, x=15-18)
+    for (let x = 15; x < 19; x++) { t[14][x] = 0; t[15][x] = 3; }
     // Upper platform for exits
     for (let x = 22; x < 28; x++) t[8][x] = 1;
-    // Mid-step left
+    // Mid-step left (y=11, 3 tiles above ground — within max jump 110px)
     for (let x = 3; x < 10; x++) t[11][x] = 1;
     // Mid-step right
     for (let x = 14; x < 22; x++) t[11][x] = 1;

@@ -18,7 +18,7 @@ const level07: LevelData = {
     for (let x = 1; x < 29; x++) t[14][x] = 1;
     // Left ledge
     for (let x = 1; x < 8; x++) t[10][x] = 1;
-    // Stepping stone so chars can reach left ledge y=10 (ground→y=12→y=10, each 2 tiles)
+    // Stepping stone so chars can reach left ledge y=10
     for (let x = 2; x < 6; x++) t[12][x] = 1;
     // Right ledge
     for (let x = 22; x < 29; x++) t[10][x] = 1;
@@ -26,9 +26,8 @@ const level07: LevelData = {
     for (let x = 22; x < 28; x++) t[5][x] = 1;
     // Small middle ledge
     for (let x = 13; x < 17; x++) t[8][x] = 1;
-    // Gap between (needs moving platform)
-    // Green acid in the pit below the gap
-    for (let x = 8; x < 22; x++) t[13][x] = 4;
+    // ACID PIT below the gap: gap in ground + hazard tile
+    for (let x = 8; x < 22; x++) { t[14][x] = 0; t[15][x] = 4; }
     return t;
   })(),
   objects: [

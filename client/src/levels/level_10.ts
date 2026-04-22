@@ -16,8 +16,8 @@ const level10: LevelData = {
       }
     }
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Gap — fan needed to cross
-    for (let x = 10; x < 20; x++) t[13][x] = 4; // acid pit
+    // ACID PIT (gap in ground + hazard tile below)
+    for (let x = 10; x < 20; x++) { t[14][x] = 0; t[15][x] = 4; }
     // Platforms at different heights
     for (let x = 1; x < 10; x++) t[10][x] = 1;
     for (let x = 20; x < 29; x++) t[10][x] = 1;
