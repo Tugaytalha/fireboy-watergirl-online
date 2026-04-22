@@ -18,6 +18,8 @@ const level07: LevelData = {
     for (let x = 1; x < 29; x++) t[14][x] = 1;
     // Left ledge
     for (let x = 1; x < 8; x++) t[10][x] = 1;
+    // Stepping stone so chars can reach left ledge y=10 (ground→y=12→y=10, each 2 tiles)
+    for (let x = 2; x < 6; x++) t[12][x] = 1;
     // Right ledge
     for (let x = 22; x < 29; x++) t[10][x] = 1;
     // Exit platform (top right)
