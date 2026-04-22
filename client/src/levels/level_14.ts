@@ -20,10 +20,10 @@ const level14: LevelData = {
     for (let x = 11; x < 20; x++) t[7][x] = 1;
     for (let x = 21; x < 29; x++) t[9][x] = 1;
     for (let x = 21; x < 29; x++) t[4][x] = 1;
-    // Hazards
-    for (let x = 3; x < 7; x++) t[13][x] = 2; // lava
-    for (let x = 13; x < 17; x++) t[13][x] = 3; // water
-    t[13][23] = 4; t[13][24] = 4; // acid
+    // Hazard PITS (gap at y=14, hazard tile at y=15)
+    for (let x = 3; x < 7; x++) { t[14][x] = 0; t[15][x] = 2; }  // lava
+    for (let x = 13; x < 17; x++) { t[14][x] = 0; t[15][x] = 3; } // water
+    t[14][23] = 0; t[15][23] = 4; t[14][24] = 0; t[15][24] = 4;   // acid
     return t;
   })(),
   objects: [

@@ -7,16 +7,17 @@ const level11: LevelData = {
     const t: number[][] = [];
     for (let y = 0; y < 17; y++) { t[y] = []; for (let x = 0; x < 30; x++) { t[y][x] = (y === 0 || y === 16 || x === 0 || x === 29) ? 1 : 0; } }
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Stepping stones: ground→y=12→y=10 on both sides (direct 4-tile jump is impossible)
-    for (let x = 2; x < 6; x++) t[12][x] = 1;   // left, near Fireboy spawn
-    for (let x = 24; x < 28; x++) t[12][x] = 1;  // right, near Watergirl spawn
+    // Stepping stones: ground→y=12→y=10 on both sides
+    for (let x = 2; x < 6; x++) t[12][x] = 1;
+    for (let x = 24; x < 28; x++) t[12][x] = 1;
     for (let x = 1; x < 14; x++) t[10][x] = 1;
     for (let x = 16; x < 29; x++) t[10][x] = 1;
     for (let x = 4; x < 12; x++) t[7][x] = 1;
     for (let x = 18; x < 26; x++) t[7][x] = 1;
     for (let x = 10; x < 20; x++) t[4][x] = 1;
     for (let y = 4; y < 7; y++) { t[y][10] = 1; t[y][19] = 1; }
-    for (let x = 14; x < 16; x++) t[13][x] = 4;
+    // Small ACID PIT between the two ground sections
+    for (let x = 14; x < 16; x++) { t[14][x] = 0; t[15][x] = 4; }
     return t;
   })(),
   objects: [

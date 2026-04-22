@@ -11,7 +11,8 @@ const level13: LevelData = {
     for (let x = 24; x < 29; x++) t[11][x] = 1;
     for (let x = 11; x < 19; x++) t[8][x] = 1;
     for (let x = 22; x < 28; x++) t[4][x] = 1;
-    for (let x = 6; x < 24; x++) t[13][x] = 4;
+    // Vast ACID PIT — crossed via fan + moving platforms
+    for (let x = 6; x < 24; x++) { t[14][x] = 0; t[15][x] = 4; }
     return t;
   })(),
   objects: [
