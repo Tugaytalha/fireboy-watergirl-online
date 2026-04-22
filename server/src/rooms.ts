@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { ROOM_CODE_LENGTH, ROOM_MAX_AGE_MS, RATE_LIMIT_ROOMS_PER_HOUR } from '@fbwg/shared';
 
 export interface Room {
@@ -18,7 +19,7 @@ function generateCode(): string {
   do {
     code = '';
     for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
+      code += chars[randomInt(chars.length)];
     }
   } while (rooms.has(code));
   return code;

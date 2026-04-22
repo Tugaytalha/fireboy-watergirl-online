@@ -12,8 +12,37 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = createServer(app);
 
-app.use(cors());
-app.use(express.json());
+// ─── Security headers ─────────────────────────────────────────────────
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '0'); // modern browsers use CSP instead
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws: wss:; font-src 'self'; object-src 'none'; base-uri 'self'",
+  );
+  next();
+});
+
+// ─── CORS ─────────────────────────────────────────────────────────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : null; // null = allow all in development
+
+app.use(
+  cors({
+    origin: allowedOrigins
+      ? (origin, cb) => {
+          if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+          else cb(new Error('Not allowed by CORS'));
+        }
+      : true,
+    methods: ['GET'],
+  }),
+);
+
+app.use(express.json({ limit: '10kb' }));
 
 // ─── API Routes ──────────────────────────────────────────────────────
 

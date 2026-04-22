@@ -20,6 +20,7 @@ interface Client {
 
 const clients = new Map<string, Client>();
 let clientIdCounter = 0;
+const MAX_WS_MESSAGE_BYTES = 4096;
 
 function generateClientId(): string {
   return `client_${++clientIdCounter}_${Date.now().toString(36)}`;
@@ -48,7 +49,16 @@ export function setupSignaling(server: Server) {
 
     ws.on('message', (data) => {
       try {
-        const msg = JSON.parse(data.toString());
+        const raw = data.toString();
+        if (Buffer.byteLength(raw, 'utf8') > MAX_WS_MESSAGE_BYTES) {
+          send(ws, SignalMessageType.ERROR, { message: 'Message too large', code: 'MESSAGE_TOO_LARGE' });
+          return;
+        }
+        const msg = JSON.parse(raw);
+        if (typeof msg.type !== 'string' || (msg.payload !== undefined && typeof msg.payload !== 'object')) {
+          send(ws, SignalMessageType.ERROR, { message: 'Invalid message format', code: 'INVALID_FORMAT' });
+          return;
+        }
         handleMessage(client, msg);
       } catch {
         send(ws, SignalMessageType.ERROR, { message: 'Invalid message format', code: 'INVALID_FORMAT' });
