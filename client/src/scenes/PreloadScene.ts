@@ -59,29 +59,79 @@ export class PreloadScene extends Phaser.Scene {
     const g = this.make.graphics({ x: 0, y: 0, add: false });
 
     // Tile 0: empty (transparent)
+
     // Tile 1: wall (dark stone)
     g.fillStyle(0x4a4a5e);
     g.fillRect(T, 0, T, T);
     g.fillStyle(0x3d3d50);
     g.fillRect(T + 2, 2, T - 4, T - 4);
 
-    // Tile 2: lava
-    g.fillStyle(0xff4400);
+    // ── Tile 2: LAVA pool ────────────────────────────────────────────
+    // Deep dark base for depth
+    g.fillStyle(0x330000);
     g.fillRect(2 * T, 0, T, T);
-    g.fillStyle(0xff6600);
-    g.fillRect(2 * T + 4, 4, T - 8, T - 8);
+    // Mid-tone layer
+    g.fillStyle(0x881100);
+    g.fillRect(2 * T, 6, T, T - 6);
+    // Bright upper band (surface glow)
+    g.fillStyle(0xff4400);
+    g.fillRect(2 * T, 10, T, T - 10);
+    // Brightest surface highlight
+    g.fillStyle(0xff7700);
+    g.fillRect(2 * T, 14, T, T - 14);
+    // Wave bumps at the surface (5 arcs)
+    g.fillStyle(0xffaa00);
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(2 * T + i * 6 + 1, 12, 4, 4);
+    }
+    // Bright lava cracks (horizontal streaks)
+    g.fillStyle(0xffcc00);
+    g.fillRect(2 * T + 4, 18, 6, 2);
+    g.fillRect(2 * T + 18, 22, 6, 2);
 
-    // Tile 3: water
-    g.fillStyle(0x0066ff);
+    // ── Tile 3: WATER pool ───────────────────────────────────────────
+    // Deep dark base
+    g.fillStyle(0x000b33);
     g.fillRect(3 * T, 0, T, T);
-    g.fillStyle(0x3399ff);
-    g.fillRect(3 * T + 4, 4, T - 8, T - 8);
+    // Mid-tone layers for depth
+    g.fillStyle(0x0033aa);
+    g.fillRect(3 * T, 6, T, T - 6);
+    g.fillStyle(0x0055dd);
+    g.fillRect(3 * T, 10, T, T - 10);
+    // Surface highlight band
+    g.fillStyle(0x2288ff);
+    g.fillRect(3 * T, 14, T, T - 14);
+    // Wave bumps at surface
+    g.fillStyle(0x66bbff);
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(3 * T + i * 6 + 1, 12, 4, 3);
+    }
+    // Light reflection streaks
+    g.fillStyle(0x99ddff);
+    g.fillRect(3 * T + 6, 18, 4, 2);
+    g.fillRect(3 * T + 20, 24, 4, 2);
 
-    // Tile 4: green acid
-    g.fillStyle(0x33cc33);
+    // ── Tile 4: GREEN ACID pool ──────────────────────────────────────
+    // Deep dark base
+    g.fillStyle(0x001a00);
     g.fillRect(4 * T, 0, T, T);
-    g.fillStyle(0x66ff66);
-    g.fillRect(4 * T + 4, 4, T - 8, T - 8);
+    // Mid-tone layers
+    g.fillStyle(0x115500);
+    g.fillRect(4 * T, 6, T, T - 6);
+    g.fillStyle(0x22aa00);
+    g.fillRect(4 * T, 10, T, T - 10);
+    // Surface highlight
+    g.fillStyle(0x44dd00);
+    g.fillRect(4 * T, 14, T, T - 14);
+    // Bubble bumps at surface
+    g.fillStyle(0x88ff44);
+    for (let i = 0; i < 5; i++) {
+      g.fillRect(4 * T + i * 6 + 1, 12, 4, 3);
+    }
+    // Toxic streak highlights
+    g.fillStyle(0xbbff88);
+    g.fillRect(4 * T + 5, 20, 4, 2);
+    g.fillRect(4 * T + 19, 25, 4, 2);
 
     // Tile 5: wall variant (mossy)
     g.fillStyle(0x3a5a3a);
@@ -130,6 +180,11 @@ export class PreloadScene extends Phaser.Scene {
     }
     fb.generateTexture('fireboy', 5 * T, T);
     fb.destroy();
+    // Register individual frame bounds so Phaser doesn't treat the full strip as one frame
+    const fbTexture = this.textures.get('fireboy');
+    for (let i = 0; i < 5; i++) {
+      fbTexture.add(i, 0, i * T, 0, T, T);
+    }
 
     // ─── Watergirl spritesheet (5 frames) ───
     const wg = this.make.graphics({ x: 0, y: 0, add: false });
@@ -160,6 +215,11 @@ export class PreloadScene extends Phaser.Scene {
     }
     wg.generateTexture('watergirl', 5 * T, T);
     wg.destroy();
+    // Register individual frame bounds
+    const wgTexture = this.textures.get('watergirl');
+    for (let i = 0; i < 5; i++) {
+      wgTexture.add(i, 0, i * T, 0, T, T);
+    }
   }
 
   private generateObjectSprites() {
@@ -321,6 +381,18 @@ export class PreloadScene extends Phaser.Scene {
     g.fillStyle(0x3399ff);
     g.fillCircle(3, 3, 3);
     g.generateTexture('particle_water', 6, 6);
+    g.clear();
+
+    // Lava spark (bright orange-yellow, larger)
+    g.fillStyle(0xffaa00);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture('particle_lava', 8, 8);
+    g.clear();
+
+    // Acid bubble (bright green)
+    g.fillStyle(0x88ff44);
+    g.fillCircle(3, 3, 3);
+    g.generateTexture('particle_acid', 6, 6);
     g.clear();
 
     g.destroy();

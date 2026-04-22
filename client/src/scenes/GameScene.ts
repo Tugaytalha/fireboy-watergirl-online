@@ -21,6 +21,9 @@ import { ExitDoor } from '../entities/ExitDoor';
 import { HUD } from '../ui/HUD';
 import { calculateRank } from '../utils/RankCalculator';
 import { Character } from '../entities/Character';
+import { NetworkManager } from '../network/NetworkManager.js';
+import { GameEventType } from '@fbwg/shared';
+import type { PlayerInput } from '@fbwg/shared';
 // Level imports
 import { levels } from '../levels';
 
@@ -68,6 +71,11 @@ export class GameScene extends Phaser.Scene {
   // Online mode
   private isOnline = false;
   private localCharacter: 'fire' | 'water' = 'fire';
+  private nm?: NetworkManager;
+  private peerInputBuffer: PlayerInput = { frame: 0, left: false, right: false, up: false };
+  private localExitReached = false;
+  private peerExitReached = false;
+  private frameCounter = 0;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -81,6 +89,10 @@ export class GameScene extends Phaser.Scene {
     this.isComplete = false;
     this.redCollected = 0;
     this.blueCollected = 0;
+    this.localExitReached = false;
+    this.peerExitReached = false;
+    this.frameCounter = 0;
+    this.peerInputBuffer = { frame: 0, left: false, right: false, up: false };
     this.diamonds = [];
     this.plates = [];
     this.levers = [];
@@ -89,6 +101,32 @@ export class GameScene extends Phaser.Scene {
     this.elevators = [];
     this.crates = [];
     this.fans = [];
+
+    // Wire up NetworkManager from registry if in online mode
+    if (data.online) {
+      this.nm = this.game.registry.get('networkManager') as NetworkManager | undefined;
+      if (this.nm) {
+        this.nm.onPeerInput((input) => {
+          this.peerInputBuffer = input;
+        });
+        this.nm.onPeerEvent((event) => {
+          if (event.type === GameEventType.LEVEL_COMPLETE) {
+            this.peerExitReached = true;
+          } else if (event.type === GameEventType.RESTART) {
+            this.restartLevel();
+          } else if (event.type === GameEventType.DEATH) {
+            // peer died — trigger game over on our side too
+            this.events.emit('character-death');
+          }
+        });
+        this.nm.onPeerDisconnect(() => {
+          // Show disconnect message then go back to menu
+          this.scene.start('MenuScene');
+        });
+      }
+    } else {
+      this.nm = undefined;
+    }
   }
 
   create() {
@@ -167,16 +205,46 @@ export class GameScene extends Phaser.Scene {
           const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
           this.physics.add.existing(zone, true);
           this.lavaZones!.add(zone);
+          // Animated lava sparks rising from the surface
+          this.add.particles(px, py - TILE_SIZE / 2, 'particle_lava', {
+            speedY: { min: -55, max: -20 },
+            speedX: { min: -8, max: 8 },
+            lifespan: 900,
+            scale: { start: 0.9, end: 0 },
+            alpha: { start: 1, end: 0 },
+            frequency: 220,
+            quantity: 1,
+          });
         } else if (tileId === TileType.WATER) {
           this.wallLayer.putTileAt(3, x, y);
           const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
           this.physics.add.existing(zone, true);
           this.waterZones!.add(zone);
+          // Gentle water ripple bubbles
+          this.add.particles(px, py - TILE_SIZE / 2, 'particle_water', {
+            speedY: { min: -20, max: -5 },
+            speedX: { min: -5, max: 5 },
+            lifespan: 1200,
+            scale: { start: 0.6, end: 0 },
+            alpha: { start: 0.7, end: 0 },
+            frequency: 380,
+            quantity: 1,
+          });
         } else if (tileId === TileType.GREEN_ACID) {
           this.wallLayer.putTileAt(4, x, y);
           const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
           this.physics.add.existing(zone, true);
           this.acidZones!.add(zone);
+          // Acid bubbles popping upward
+          this.add.particles(px, py - TILE_SIZE / 2, 'particle_acid', {
+            speedY: { min: -40, max: -10 },
+            speedX: { min: -6, max: 6 },
+            lifespan: 700,
+            scale: { start: 0.7, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            frequency: 300,
+            quantity: 1,
+          });
         }
       }
     }
@@ -319,13 +387,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Characters ↔ exit doors (overlap)
-    this.physics.add.overlap(this.fireboy, this.exitFire, () => {
-      this.exitFire.setOccupied(true);
-    });
-    this.physics.add.overlap(this.watergirl, this.exitWater, () => {
-      this.exitWater.setOccupied(true);
-    });
+    // Characters ↔ exit doors — checked each frame via physics.overlap() in checkExits()
 
     // Fan wind zones
     for (const fan of this.fans) {
@@ -356,19 +418,46 @@ export class GameScene extends Phaser.Scene {
     this.fireboy.isPushing = false;
     this.watergirl.isPushing = false;
 
-    // Fireboy — Arrow keys
-    this.fireboy.handleInput(
-      this.cursorsArrow.left.isDown,
-      this.cursorsArrow.right.isDown,
-      this.cursorsArrow.up.isDown,
-    );
+    if (this.isOnline && this.nm) {
+      // ── Online mode: local player controls their character, peer input drives the other ──
+      this.frameCounter++;
 
-    // Watergirl — WASD
-    this.watergirl.handleInput(
-      this.keysWASD.A.isDown,
-      this.keysWASD.D.isDown,
-      this.keysWASD.W.isDown,
-    );
+      if (this.localCharacter === 'fire') {
+        const left = this.cursorsArrow.left.isDown;
+        const right = this.cursorsArrow.right.isDown;
+        const up = this.cursorsArrow.up.isDown;
+        this.fireboy.handleInput(left, right, up);
+        this.nm.sendInput({ frame: this.frameCounter, left, right, up });
+        this.watergirl.handleInput(
+          this.peerInputBuffer.left,
+          this.peerInputBuffer.right,
+          this.peerInputBuffer.up,
+        );
+      } else {
+        const left = this.keysWASD.A.isDown;
+        const right = this.keysWASD.D.isDown;
+        const up = this.keysWASD.W.isDown;
+        this.watergirl.handleInput(left, right, up);
+        this.nm.sendInput({ frame: this.frameCounter, left, right, up });
+        this.fireboy.handleInput(
+          this.peerInputBuffer.left,
+          this.peerInputBuffer.right,
+          this.peerInputBuffer.up,
+        );
+      }
+    } else {
+      // ── Offline mode: both characters controlled locally ──
+      this.fireboy.handleInput(
+        this.cursorsArrow.left.isDown,
+        this.cursorsArrow.right.isDown,
+        this.cursorsArrow.up.isDown,
+      );
+      this.watergirl.handleInput(
+        this.keysWASD.A.isDown,
+        this.keysWASD.D.isDown,
+        this.keysWASD.W.isDown,
+      );
+    }
 
     // Restart
     if (Phaser.Input.Keyboard.JustDown(this.keyR)) {
@@ -389,6 +478,9 @@ export class GameScene extends Phaser.Scene {
       if (this.isDead) return;
       this.isDead = true;
       this.hud.stopTimer();
+      if (this.isOnline && this.nm) {
+        this.nm.sendGameEvent({ type: GameEventType.DEATH });
+      }
       this.time.delayedCall(DEATH_DELAY_MS, () => {
         this.scene.start('GameOverScene', { levelId: this.levelId });
       });
@@ -403,9 +495,7 @@ export class GameScene extends Phaser.Scene {
       elevator.update();
     }
 
-    // Reset exit occupied state each frame (re-checked via overlap)
-    this.exitFire.setOccupied(false);
-    this.exitWater.setOccupied(false);
+    // Exit occupied state is updated each frame in checkExits()
   }
 
   private checkPressurePlates() {
@@ -462,8 +552,28 @@ export class GameScene extends Phaser.Scene {
   }
 
   private checkExits() {
-    if (this.exitFire.isOccupied && this.exitWater.isOccupied) {
-      this.completeLevel();
+    const fireOnExit = this.physics.overlap(this.fireboy, this.exitFire);
+    const waterOnExit = this.physics.overlap(this.watergirl, this.exitWater);
+
+    this.exitFire.setOccupied(fireOnExit);
+    this.exitWater.setOccupied(waterOnExit);
+
+    if (this.isOnline && this.nm) {
+      // Determine which exit belongs to the local player
+      const localOnExit = this.localCharacter === 'fire' ? fireOnExit : waterOnExit;
+
+      if (localOnExit && !this.localExitReached) {
+        this.localExitReached = true;
+        this.nm.sendGameEvent({ type: GameEventType.LEVEL_COMPLETE });
+      }
+
+      if (this.localExitReached && this.peerExitReached) {
+        this.completeLevel();
+      }
+    } else {
+      if (fireOnExit && waterOnExit) {
+        this.completeLevel();
+      }
     }
   }
 
@@ -495,6 +605,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private restartLevel() {
+    if (this.isOnline && this.nm) {
+      this.nm.sendGameEvent({ type: GameEventType.RESTART });
+    }
     this.scene.restart({ levelId: this.levelId, online: this.isOnline, character: this.localCharacter });
   }
 

@@ -1,19 +1,19 @@
 import Phaser from 'phaser';
-import { LEVEL_WIDTH_PX, LEVEL_HEIGHT_PX } from '@fbwg/shared';
+import { LEVEL_WIDTH_PX } from '@fbwg/shared';
+import { NetworkManager } from '../network/NetworkManager.js';
 
 export class LobbyScene extends Phaser.Scene {
-  private roomCodeText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private inputText = '';
-  private mode: 'menu' | 'create' | 'join' = 'menu';
+  private nm?: NetworkManager;
 
   constructor() {
     super({ key: 'LobbyScene' });
   }
 
   create() {
-    this.mode = 'menu';
     this.inputText = '';
+    this.nm = undefined;
     const cx = LEVEL_WIDTH_PX / 2;
 
     this.add
@@ -25,38 +25,59 @@ export class LobbyScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.createButton(cx, 160, 'Create Room', () => this.showCreateRoom());
-    this.createButton(cx, 230, 'Join Room', () => this.showJoinRoom());
-    this.createButton(cx, 300, 'Back', () => this.scene.start('MenuScene'));
+    this.createButton(cx, 160, 'Create Room (Fireboy)', () => this.startCreate('fire'));
+    this.createButton(cx, 220, 'Create Room (Watergirl)', () => this.startCreate('water'));
+    this.createButton(cx, 280, 'Join Room', () => this.showJoinRoom());
+    this.createButton(cx, 340, 'Back', () => {
+      this.nm?.cleanup();
+      this.scene.start('MenuScene');
+    });
 
     this.statusText = this.add
-      .text(cx, 400, '', {
+      .text(cx, 440, '', {
         fontSize: '14px',
         color: '#aaaaaa',
         fontFamily: 'monospace',
+        wordWrap: { width: LEVEL_WIDTH_PX - 40 },
+        align: 'center',
       })
       .setOrigin(0.5);
   }
 
-  private showCreateRoom() {
-    // Generate a random room code (client-side demo; real one from server)
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
+  private async startCreate(character: 'fire' | 'water') {
+    this.statusText?.setText('Connecting to server...');
+    const nm = new NetworkManager();
+    this.nm = nm;
+
+    nm.onError((msg) => this.statusText?.setText(`Error: ${msg}`));
+    nm.onPeerDisconnect(() => this.statusText?.setText('Peer disconnected.'));
+
+    try {
+      await nm.connect();
+    } catch {
+      this.statusText?.setText('Could not reach server. Is it running?');
+      return;
     }
 
-    this.statusText?.setText(`Room Code: ${code}\nShare this code with your friend!\n\nWaiting for player...`);
+    nm.onRoomCreated((code) => {
+      this.statusText?.setText(`Room Code:\n\n${code}\n\nShare with your friend!\nWaiting for them to join...`);
+    });
 
-    // TODO: integrate with NetworkManager for real signaling
+    nm.onRoomReady(() => {
+      this.game.registry.set('networkManager', nm);
+      this.scene.start('GameScene', { levelId: 1, online: true, character: nm.localCharacter });
+    });
+
+    nm.createRoom(character);
   }
 
   private showJoinRoom() {
-    this.statusText?.setText('Enter room code:\n(Use keyboard to type, press ENTER to join)');
+    this.statusText?.setText('Type the 6-character room code and press ENTER:');
     this.inputText = '';
 
+    const cx = LEVEL_WIDTH_PX / 2;
     const inputDisplay = this.add
-      .text(LEVEL_WIDTH_PX / 2, 440, '______', {
+      .text(cx, 490, '______', {
         fontSize: '28px',
         color: '#ffcc00',
         fontFamily: 'monospace',
@@ -64,18 +85,45 @@ export class LobbyScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.input.keyboard!.on('keydown', (event: KeyboardEvent) => {
+    const keyHandler = async (event: KeyboardEvent) => {
       if (event.key === 'Backspace') {
         this.inputText = this.inputText.slice(0, -1);
       } else if (event.key === 'Enter' && this.inputText.length === 6) {
-        this.statusText?.setText(`Connecting to room ${this.inputText}...`);
-        // TODO: integrate with NetworkManager
+        this.input.keyboard!.off('keydown', keyHandler);
+        await this.doJoin(this.inputText);
       } else if (this.inputText.length < 6 && /^[A-Za-z0-9]$/.test(event.key)) {
         this.inputText += event.key.toUpperCase();
       }
-      const display = this.inputText.padEnd(6, '_');
-      inputDisplay.setText(display);
+      inputDisplay.setText(this.inputText.padEnd(6, '_'));
+    };
+    this.input.keyboard!.on('keydown', keyHandler);
+  }
+
+  private async doJoin(code: string) {
+    this.statusText?.setText(`Connecting to room ${code}...`);
+    const nm = new NetworkManager();
+    this.nm = nm;
+
+    nm.onError((msg) => this.statusText?.setText(`Error: ${msg}`));
+    nm.onPeerDisconnect(() => this.statusText?.setText('Peer disconnected.'));
+
+    try {
+      await nm.connect();
+    } catch {
+      this.statusText?.setText('Could not reach server. Is it running?');
+      return;
+    }
+
+    nm.onRoomJoined(() => {
+      this.statusText?.setText(`Joined room ${code}!\nWaiting for peer connection...`);
     });
+
+    nm.onRoomReady(() => {
+      this.game.registry.set('networkManager', nm);
+      this.scene.start('GameScene', { levelId: 1, online: true, character: nm.localCharacter });
+    });
+
+    nm.joinRoom(code);
   }
 
   private createButton(x: number, y: number, label: string, callback: () => void) {
@@ -85,7 +133,7 @@ export class LobbyScene extends Phaser.Scene {
 
     const text = this.add
       .text(x, y, label, {
-        fontSize: '16px',
+        fontSize: '14px',
         color: '#ffffff',
         fontFamily: 'monospace',
       })
