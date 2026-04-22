@@ -20,6 +20,8 @@ const level05: LevelData = {
     }
     // Ground floor
     for (let x = 1; x < 29; x++) t[14][x] = 1;
+    // Stepping stone near spawn so chars can reach y=10 platform (4-tile jump is impossible; 2+2 tiles is fine)
+    for (let x = 2; x < 6; x++) t[12][x] = 1;
     // Wall divider with door opening
     for (let y = 3; y < 14; y++) t[y][15] = 1;
     // Left area platforms
