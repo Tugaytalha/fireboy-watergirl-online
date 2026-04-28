@@ -61,6 +61,13 @@ export class GameScene extends Phaser.Scene {
   private waterZones: Phaser.Physics.Arcade.StaticGroup | null = null;
   private acidZones: Phaser.Physics.Arcade.StaticGroup | null = null;
 
+  // Hazard wave animation
+  private hazardWaveGraphics!: Phaser.GameObjects.Graphics;
+  private hazardTime = 0;
+  private lavaPositions: { px: number; py: number }[] = [];
+  private waterPositions: { px: number; py: number }[] = [];
+  private acidPositions: { px: number; py: number }[] = [];
+
   // State
   private hud!: HUD;
   private redCollected = 0;
@@ -93,6 +100,10 @@ export class GameScene extends Phaser.Scene {
     this.peerExitReached = false;
     this.frameCounter = 0;
     this.peerInputBuffer = { frame: 0, left: false, right: false, up: false };
+    this.hazardTime = 0;
+    this.lavaPositions = [];
+    this.waterPositions = [];
+    this.acidPositions = [];
     this.diamonds = [];
     this.plates = [];
     this.levers = [];
@@ -139,6 +150,8 @@ export class GameScene extends Phaser.Scene {
 
     this.buildTilemap();
     this.createHazardZones();
+    // Wave overlay — drawn above tilemap, below characters
+    this.hazardWaveGraphics = this.add.graphics().setDepth(2);
     this.createObjects();
     this.createCharacters();
     this.setupCollisions();
@@ -152,6 +165,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number) {
+    // Always animate hazard waves, even when paused/dead
+    this.hazardTime += delta;
+    this.drawHazardWaves();
+
     if (this.isDead || this.isComplete) return;
 
     this.handleInput();
@@ -162,6 +179,46 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ─── Level Building ────────────────────────────────────────────────
+
+  private drawHazardWaves() {
+    if (!this.hazardWaveGraphics) return;
+    this.hazardWaveGraphics.clear();
+    const t = this.hazardTime / 1000; // seconds
+    const T = TILE_SIZE;
+
+    // Lava: slow rolling orange wave
+    this.hazardWaveGraphics.fillStyle(0xffaa00, 0.9);
+    for (const { px, py } of this.lavaPositions) {
+      const surfaceY = py - T / 2;
+      for (let i = 0; i < 8; i++) {
+        const wx = px - T / 2 + i * 4 + 1;
+        const wy = surfaceY + Math.sin(t * 2.5 + px / 35 + i * 0.9) * 2.5;
+        this.hazardWaveGraphics.fillRect(wx, wy, 3, 3);
+      }
+    }
+
+    // Water: gentle ripple, lighter blue
+    this.hazardWaveGraphics.fillStyle(0x88ddff, 0.8);
+    for (const { px, py } of this.waterPositions) {
+      const surfaceY = py - T / 2;
+      for (let i = 0; i < 8; i++) {
+        const wx = px - T / 2 + i * 4 + 1;
+        const wy = surfaceY + Math.sin(t * 1.8 + px / 35 + i * 1.1) * 2;
+        this.hazardWaveGraphics.fillRect(wx, wy, 3, 2);
+      }
+    }
+
+    // Acid: fast erratic bright-green wave
+    this.hazardWaveGraphics.fillStyle(0xbbff44, 0.9);
+    for (const { px, py } of this.acidPositions) {
+      const surfaceY = py - T / 2;
+      for (let i = 0; i < 8; i++) {
+        const wx = px - T / 2 + i * 4 + 1;
+        const wy = surfaceY + Math.sin(t * 4.0 + px / 35 + i * 0.7) * 2;
+        this.hazardWaveGraphics.fillRect(wx, wy, 3, 3);
+      }
+    }
+  }
 
   private buildTilemap() {
     const { width, height, tiles } = this.levelData;
@@ -185,7 +242,8 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    this.wallLayer.setCollisionByExclusion([-1, 0]);
+    // Exclude hazard tiles (2=lava,3=water,4=acid) from tilemap collision so characters fall through them
+    this.wallLayer.setCollisionByExclusion([-1, 0, 2, 3, 4]);
   }
 
   private createHazardZones() {
@@ -202,48 +260,55 @@ export class GameScene extends Phaser.Scene {
 
         if (tileId === TileType.LAVA) {
           this.wallLayer.putTileAt(2, x, y);
-          const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
+          // Full-tile zone: characters falling INTO the pit trigger death
+          const zone = this.add.zone(px, py, TILE_SIZE, TILE_SIZE);
           this.physics.add.existing(zone, true);
           this.lavaZones!.add(zone);
-          // Animated lava sparks rising from the surface
-          this.add.particles(px, py - TILE_SIZE / 2, 'particle_lava', {
-            speedY: { min: -55, max: -20 },
-            speedX: { min: -8, max: 8 },
-            lifespan: 900,
-            scale: { start: 0.9, end: 0 },
+          this.lavaPositions.push({ px, py });
+          // Lava sparks erupt from surface
+          this.add.particles(px, py - TILE_SIZE / 2 + 4, 'particle_lava', {
+            speedY: { min: -70, max: -25 },
+            speedX: { min: -12, max: 12 },
+            lifespan: 1000,
+            scale: { start: 1.1, end: 0 },
             alpha: { start: 1, end: 0 },
-            frequency: 220,
+            frequency: 160,
             quantity: 1,
+            gravityY: 80,
           });
         } else if (tileId === TileType.WATER) {
           this.wallLayer.putTileAt(3, x, y);
-          const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
+          const zone = this.add.zone(px, py, TILE_SIZE, TILE_SIZE);
           this.physics.add.existing(zone, true);
           this.waterZones!.add(zone);
-          // Gentle water ripple bubbles
-          this.add.particles(px, py - TILE_SIZE / 2, 'particle_water', {
-            speedY: { min: -20, max: -5 },
-            speedX: { min: -5, max: 5 },
-            lifespan: 1200,
-            scale: { start: 0.6, end: 0 },
-            alpha: { start: 0.7, end: 0 },
-            frequency: 380,
+          this.waterPositions.push({ px, py });
+          // Water droplets bubble up then fall back
+          this.add.particles(px, py - TILE_SIZE / 2 + 4, 'particle_water', {
+            speedY: { min: -28, max: -8 },
+            speedX: { min: -6, max: 6 },
+            lifespan: 1400,
+            scale: { start: 0.8, end: 0 },
+            alpha: { start: 0.9, end: 0 },
+            frequency: 280,
             quantity: 1,
+            gravityY: 30,
           });
         } else if (tileId === TileType.GREEN_ACID) {
           this.wallLayer.putTileAt(4, x, y);
-          const zone = this.add.zone(px, py, TILE_SIZE - 4, TILE_SIZE - 4);
+          const zone = this.add.zone(px, py, TILE_SIZE, TILE_SIZE);
           this.physics.add.existing(zone, true);
           this.acidZones!.add(zone);
-          // Acid bubbles popping upward
-          this.add.particles(px, py - TILE_SIZE / 2, 'particle_acid', {
-            speedY: { min: -40, max: -10 },
-            speedX: { min: -6, max: 6 },
-            lifespan: 700,
-            scale: { start: 0.7, end: 0 },
-            alpha: { start: 0.9, end: 0 },
-            frequency: 300,
+          this.acidPositions.push({ px, py });
+          // Acid bubbles pop energetically
+          this.add.particles(px, py - TILE_SIZE / 2 + 4, 'particle_acid', {
+            speedY: { min: -50, max: -15 },
+            speedX: { min: -8, max: 8 },
+            lifespan: 800,
+            scale: { start: 0.9, end: 0 },
+            alpha: { start: 1, end: 0 },
+            frequency: 200,
             quantity: 1,
+            gravityY: 60,
           });
         }
       }
@@ -613,5 +678,6 @@ export class GameScene extends Phaser.Scene {
 
   shutdown() {
     this.hud?.destroy();
+    this.hazardWaveGraphics?.destroy();
   }
 }
