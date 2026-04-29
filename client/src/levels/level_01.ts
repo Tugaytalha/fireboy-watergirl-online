@@ -35,7 +35,7 @@ const level01: LevelData = {
     { type: 'red', x: 16, y: 10 },
     { type: 'blue', x: 18, y: 10 },
   ],
-  spawns: { fireboy: [2, 13], watergirl: [4, 13] },
+  spawns: { fireboy: [2, 13], watergirl: [26, 13] },
   exits: { fireboy: [25, 7], watergirl: [22, 7] },
   par: { time: 30, diamonds: { red: 2, blue: 2 } },
 };

@@ -20,8 +20,10 @@ const level05: LevelData = {
     }
     // Ground floor
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Stepping stone near spawn so chars can reach y=10 platform (4-tile jump is impossible; 2+2 tiles is fine)
+    // Left stepping stone: ground y=14 → y=12 → y=10 (each 2-tile hop)
     for (let x = 2; x < 6; x++) t[12][x] = 1;
+    // Right stepping stone: Watergirl spawns right, needs same 2-hop path
+    for (let x = 24; x < 28; x++) t[12][x] = 1;
     // Wall divider with door opening
     for (let y = 3; y < 14; y++) t[y][15] = 1;
     // Left area platforms
@@ -50,7 +52,7 @@ const level05: LevelData = {
     { type: 'blue', x: 20, y: 13 },
     { type: 'blue', x: 24, y: 9 },
   ],
-  spawns: { fireboy: [2, 13], watergirl: [3, 13] },
+  spawns: { fireboy: [2, 13], watergirl: [26, 13] },
   exits: { fireboy: [26, 3], watergirl: [24, 3] },
   par: { time: 45, diamonds: { red: 2, blue: 2 } },
 };

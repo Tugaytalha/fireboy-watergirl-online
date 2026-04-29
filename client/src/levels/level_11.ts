@@ -24,7 +24,8 @@ const level11: LevelData = {
     { id: 'door_l', type: 'door', x: 10, y: 5, height: 2 },
     { id: 'door_r', type: 'door', x: 19, y: 5, height: 2 },
     { id: 'lever_1', type: 'lever', x: 6, y: 9, targets: ['door_l'] },
-    { id: 'plate_1', type: 'pressure_plate', x: 22, y: 9, activator: 'water', targets: ['door_r'] },
+    // Changed from pressure_plate to lever so Watergirl can leave and still exit (offline-friendly)
+    { id: 'lever_2', type: 'lever', x: 22, y: 9, targets: ['door_r'] },
   ],
   diamonds: [
     { type: 'red', x: 4, y: 13 }, { type: 'red', x: 8, y: 6 }, { type: 'red', x: 14, y: 3 },

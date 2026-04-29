@@ -29,10 +29,14 @@ const level09: LevelData = {
     return t;
   })(),
   objects: [
-    // Elevator activated by plate
+    // Elevator activated by either plate (offline-friendly: one player holds left, other rides,
+    // then steps on right plate so the first player can also ride)
     { id: 'elev_1', type: 'elevator', x: 14, y: 12,
       path: [{ x: 15, y: 12 }, { x: 15, y: 7 }], speed: 60 },
     { id: 'plate_1', type: 'pressure_plate', x: 5, y: 10,
+      activator: 'both', targets: ['elev_1'] },
+    // Second plate on right platform: step on it after riding elevator to keep elevator active
+    { id: 'plate_2', type: 'pressure_plate', x: 22, y: 7,
       activator: 'both', targets: ['elev_1'] },
   ],
   diamonds: [

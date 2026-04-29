@@ -22,6 +22,9 @@ const level10: LevelData = {
     for (let x = 1; x < 10; x++) t[10][x] = 1;
     for (let x = 20; x < 29; x++) t[10][x] = 1;
     for (let x = 12; x < 18; x++) t[7][x] = 1;
+    // Right-side intermediate step: right platform y=10 → step y=7 → exit y=4 (each 3 tiles ✓)
+    // Without this, right-platform y=10 → exit y=4 = 6 tiles which is impossible
+    for (let x = 20; x < 28; x++) t[7][x] = 1;
     // Exit area
     for (let x = 22; x < 28; x++) t[4][x] = 1;
     return t;

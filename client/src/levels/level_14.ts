@@ -15,10 +15,17 @@ const level14: LevelData = {
     t[11][20] = 0; t[12][20] = 0;
     // Platforms
     for (let x = 1; x < 10; x++) t[11][x] = 1;
+    // Stepping stone y=9 in left section: y=11→y=9 (2 tiles ✓), y=9→y=7 (2 tiles ✓)
+    // Without this, y=11→y=7 = 4 tiles which is impossible
+    for (let x = 1; x < 10; x++) t[9][x] = 1;
     for (let x = 1; x < 10; x++) t[7][x] = 1;
     for (let x = 11; x < 20; x++) t[11][x] = 1;
+    // Stepping stone y=9 in middle section
+    for (let x = 11; x < 20; x++) t[9][x] = 1;
     for (let x = 11; x < 20; x++) t[7][x] = 1;
     for (let x = 21; x < 29; x++) t[9][x] = 1;
+    // Right stepping stone y=7: y=9→y=7 (2 tiles ✓), y=7→y=4 (3 tiles ✓)
+    for (let x = 21; x < 29; x++) t[7][x] = 1;
     for (let x = 21; x < 29; x++) t[4][x] = 1;
     // Hazard PITS (gap at y=14, hazard tile at y=15)
     for (let x = 3; x < 7; x++) { t[14][x] = 0; t[15][x] = 2; }  // lava
@@ -34,7 +41,7 @@ const level14: LevelData = {
     { type: 'red', x: 5, y: 12 }, { type: 'red', x: 3, y: 6 }, { type: 'red', x: 15, y: 6 }, { type: 'red', x: 25, y: 3 },
     { type: 'blue', x: 15, y: 12 }, { type: 'blue', x: 7, y: 6 }, { type: 'blue', x: 18, y: 6 }, { type: 'blue', x: 24, y: 3 },
   ],
-  spawns: { fireboy: [2, 13], watergirl: [4, 13] },
+  spawns: { fireboy: [2, 13], watergirl: [8, 13] },
   exits: { fireboy: [27, 3], watergirl: [22, 3] },
   par: { time: 65, diamonds: { red: 4, blue: 4 } },
 };

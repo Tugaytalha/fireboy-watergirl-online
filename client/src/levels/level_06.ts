@@ -16,10 +16,14 @@ const level06: LevelData = {
       }
     }
     for (let x = 1; x < 29; x++) t[14][x] = 1;
-    // Lower platforms
+    // Lower platforms y=11 (3-tile jump from ground ✓)
     for (let x = 2; x < 12; x++) t[11][x] = 1;
     for (let x = 18; x < 28; x++) t[11][x] = 1;
-    // Upper platforms
+    // Stepping stones y=9 (y=11→y=9 = 2 tiles ✓, then y=9→y=7 = 2 tiles ✓)
+    // Without these, y=11→y=7 = 4 tiles which is impossible
+    for (let x = 2; x < 12; x++) t[9][x] = 1;
+    for (let x = 18; x < 28; x++) t[9][x] = 1;
+    // Upper platforms y=7
     for (let x = 5; x < 14; x++) t[7][x] = 1;
     for (let x = 16; x < 25; x++) t[7][x] = 1;
     // Exit platform
