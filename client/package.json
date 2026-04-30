@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@fbwg/shared": "*",
-    "phaser": "^3.80.0",
+    "phaser": "^4.1.0",
     "peerjs": "^1.5.0"
   },
   "devDependencies": {
