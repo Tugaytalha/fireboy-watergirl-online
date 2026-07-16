@@ -13,7 +13,7 @@
     "@fbwg/shared": "*",
     "cors": "^2.8.5",
     "express": "^4.19.0",
-    "ws": "^8.17.0"
+    "ws": "^8.21.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.0",
